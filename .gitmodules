@@ -1,0 +1,3 @@
+[submodule "virl"]
+	path = virl
+	url = https://git.dcs.gla.ac.uk/SebastianStein/virl.git
