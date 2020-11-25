@@ -4,6 +4,7 @@
 - dev分支是主要开发分支，自己的分支请从dev创建（不要直接在dev上操作）
 - 经常使用fetch命令跟新远程仓库信息
 - 完成后请合并到dev分支然后推送到远程
+- 具体学习参考[这里](https://www.liaoxuefeng.com/wiki/896043488029600/900375748016320)
 
 ## 关于coursework
 - 在根目录里创建自己的[agentname]_[yourname]文件 然后在里面随便搞
