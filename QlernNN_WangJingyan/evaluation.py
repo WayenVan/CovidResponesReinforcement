@@ -1,9 +1,9 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import itertools
-import random
 
 
-def policy_generator(env, epsilon, approximator, policy_type="random"):
+def policy_generator(env, approximator=None, policy_type="random"):
     """
     Creates an greedy policy with the exploration defined by the epsilon and nA parameters
     
@@ -20,12 +20,11 @@ def policy_generator(env, epsilon, approximator, policy_type="random"):
         return action
     
     def greedy_policy(s):
-         # Select an action usign and epsilon greedy policy based on the main behavior network
-        if np.random.rand() <= epsilon:
-            action = random.randrange(env.action_space.n)
-        else:
-            act_values = approximator.predict(np.reshape(s, [1, env.observation_space.shape[0]]))[0]
-            action = np.argmax(act_values)  # returns action
+        #make sure approximator has ben imported
+        assert(not approximator is None)
+
+        act_values = approximator.predict(np.reshape(s, [1, env.observation_space.shape[0]]))[0]
+        action = np.argmax(act_values)  # returns action
         return action
     
     if(policy_type=="random"):
@@ -62,3 +61,15 @@ def exec_agent(policy, env):
             break
             
     return states, rewards, actions
+
+
+def plot_stats(states, property=[0,1,2,3]):
+    
+    state_name = ["susceptible", "infectious", "quanrantined", "recovered"]
+    states_swp = np.array(list(zip(*states)))
+
+    for i in property:
+        plt.plot(states_swp[i], label=state_name[i])
+        
+    plt.legend()
+    
