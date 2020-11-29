@@ -34,14 +34,15 @@ def policy_generator(env, approximator=None, policy_type="random"):
     else:
         return None
 
-def exec_agent(policy, env):
+def exec_agent(policy, env, max_steps=100):
     
     d_states = env.observation_space.shape[0]
     n_actions = env.action_space.n
     
     states = []
     rewards = []
-    actions = []    
+    actions = []
+    total_steps = 0    
     
     #reset the environment
     state = env.reset()
@@ -57,13 +58,15 @@ def exec_agent(policy, env):
         rewards.append(reward)
         actions.append(action)
         
-        if done:
+        if done or i >= max_steps:
+            total_steps = i
             break
             
-    return states, rewards, actions
+    return states, rewards, actions, total_steps
 
 
-def plot_stats(states, property=[0,1,2,3]):
+def plot_states(states, property=[0,1,2,3]):
+    """plot states in one episode"""
     
     state_name = ["susceptible", "infectious", "quanrantined", "recovered"]
     states_swp = np.array(list(zip(*states)))

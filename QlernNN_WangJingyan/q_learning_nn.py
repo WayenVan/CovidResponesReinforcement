@@ -37,7 +37,11 @@ class ReplayMemory():
 #define a q_learning agent with
 
 
-def q_learning_nn(env, func_approximator, func_approximator_target, num_episodes,max_steps_per_episode=500,discount_factor=0.95, epsilon_init=0.01, epsilon_decay=0.99995,epsilon_min=0.01,use_batch_updates=True, fn_model_in=None, fn_model_out=None):
+def q_learning_nn(env, func_approximator, func_approximator_target, num_episodes,
+                max_steps_per_episode=500,discount_factor=0.95, 
+                epsilon_init=0.01,epsilon_decay=0.99995,epsilon_min=0.01,
+                use_batch_updates=True, BATCH_SIZE=20,
+                fn_model_in=None, fn_model_out=None, BUFFER_SIZE=10000):
     """
     Q-Learning algorithm for Q-learning using Function Approximations.
     Finds the optimal greedy policy while following an explorative greedy policy.
