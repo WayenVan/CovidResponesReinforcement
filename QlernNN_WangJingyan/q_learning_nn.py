@@ -9,6 +9,12 @@ from collections import namedtuple
 # Keep track of some stats
 EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
 
+class Stats_storage():
+    
+    def __init__(self, stats):
+        self.episode_lengths = stats.episode_lengths
+        self.episode_rewards = stats.episode_rewards
+
 #define a replay buffer
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward','is_not_terminal_state'))

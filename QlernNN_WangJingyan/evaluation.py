@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import itertools
+import pickle 
 
 
 def policy_generator(env, approximator=None, policy_type="random"):
@@ -76,3 +77,14 @@ def plot_states(states, property=[0,1,2,3]):
         
     plt.legend()
     
+
+def save_variable(v, filename):
+    f = open(filename, 'wb')
+    pickle.dump(v, f)
+    f.close()
+
+def load_variable(filename):
+    f = open(filename, 'rb')
+    v = pickle.load(f)
+    f.close()
+    return v
