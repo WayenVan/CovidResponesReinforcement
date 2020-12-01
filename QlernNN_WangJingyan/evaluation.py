@@ -35,36 +35,16 @@ def policy_generator(env, approximator=None, policy_type="random"):
     else:
         return None
 
-def exec_agent(policy, env, max_steps=100):
-    
-    d_states = env.observation_space.shape[0]
-    n_actions = env.action_space.n
-    
-    states = []
-    rewards = []
-    actions = []
-    total_steps = 0    
-    
-    #reset the environment
-    state = env.reset()
-    states.append(state)
-    
-    for i in itertools.count():
-        action = policy(state)
-        
-        #exec the policy
-        state, reward, done, _= env.step(action)
-        
-        states.append(state)
-        rewards.append(reward)
-        actions.append(action)
-        
-        if done or i >= max_steps:
-            total_steps = i
-            break
-            
-    return states, rewards, actions, total_steps
+def save_variable(v, filename):
+    f = open(filename, 'wb')
+    pickle.dump(v, f)
+    f.close()
 
+def load_variable(filename):
+    f = open(filename, 'rb')
+    v = pickle.load(f)
+    f.close()
+    return v
 
 def plot_states(states, property=[0,1,2,3]):
     """plot states in one episode"""
@@ -76,15 +56,3 @@ def plot_states(states, property=[0,1,2,3]):
         plt.plot(states_swp[i], label=state_name[i])
         
     plt.legend()
-    
-
-def save_variable(v, filename):
-    f = open(filename, 'wb')
-    pickle.dump(v, f)
-    f.close()
-
-def load_variable(filename):
-    f = open(filename, 'rb')
-    v = pickle.load(f)
-    f.close()
-    return v

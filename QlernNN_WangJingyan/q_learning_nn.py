@@ -1,5 +1,7 @@
 
 from collections import deque
+from os import unsetenv
+from matplotlib.pyplot import phase_spectrum
 
 import numpy as np
 import sys
@@ -44,6 +46,7 @@ class ReplayMemory():
 
 
 def q_learning_nn(env, func_approximator, func_approximator_target, num_episodes,
+                use_normalization = False,
                 max_steps_per_episode=500,discount_factor=0.95, 
                 epsilon_init=0.01,epsilon_decay=0.99995,epsilon_min=0.01,
                 use_batch_updates=True, BATCH_SIZE=20,
@@ -93,6 +96,8 @@ def q_learning_nn(env, func_approximator, func_approximator_target, num_episodes
                
         # Reset the environment and pick the first action
         state = env.reset()
+        if(use_normalization):
+            state = normalization(state)
         state = np.reshape(state, [1, d_states]) # reshape to the a 1xd_state numpy array
         
         # One step in the environment
@@ -106,9 +111,12 @@ def q_learning_nn(env, func_approximator, func_approximator_target, num_episodes
                 action = np.argmax(act_values)  # returns action                        
             
             # Take a step            
-            next_state, reward, done, _ = env.step(action)                        
+            next_state, reward, done, _ = env.step(action) 
+            if(use_normalization):
+                next_state = normalization(next_state)                       
             next_state = np.reshape(next_state, [1, d_states] )
             
+
             # Add observation to the replay buffer
             if done:
                 memory.push(state, action, next_state, reward, 0.0)            
@@ -164,3 +172,6 @@ def q_learning_nn(env, func_approximator, func_approximator_target, num_episodes
                 break
             
     return stats
+
+def normalization(state):
+    return state/np.sum(state)
