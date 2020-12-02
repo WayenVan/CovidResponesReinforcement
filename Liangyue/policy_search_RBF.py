@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import time
 import itertools
 import matplotlib
+import pickle
+import pandas as pd
 
 import numpy as np
 import sys
@@ -21,14 +23,9 @@ from sklearn.kernel_approximation import RBFSampler # this is the RBF function t
 
 from scipy.linalg import norm, pinv
 
-#import environment
-import sys
-sys.path.append(r'../virl')
-import virl
 
+EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
 
-
-env = virl.Epidemic(problem_id = 0, noisy = False)
 
 
 """
@@ -52,10 +49,6 @@ def create_policy(func_approximator, epsilon, nA):
 Execute the policy
 """
 def exec_policy(env, func_approximator, verbose=False):
-    """
-        A function for executing a policy given the funciton
-        approximation (the exploration is zero)
-    """
 
     # The policy is defined by our function approximator (of the utility)... let's get a hdnle to that function
     policy = create_policy(func_approximator, 0.0, env.action_space.n)
@@ -100,27 +93,23 @@ Function Approximation
 """
 
 class FunctionApproximator():
-    """
-    Q(s,a) function approximator. 
-
-    it uses a specific form for Q(s,a) where seperate functions are fitteted for each 
-    action (i.e. four Q_a(s) individual functions)
-
-    """
  
-    def __init__(self, eta0= 0.01, learning_rate= "constant", read_approximator = None):
+    def __init__(self, env,scaler,feature_transformer, eta0= 0.01, learning_rate= "constant", read_approximator = None):
       
         self.eta0=eta0
         self.learning_rate=learning_rate
+        self.env = env
+        self.scaler = scaler
+        self.feature_transformer = feature_transformer
         
         self.models = []
         
         if read_approximator is None:
-             for _ in range(env.action_space.n):
+             for _ in range(self.env.action_space.n):
 
                 model = SGDRegressor(learning_rate=learning_rate, tol=1e-5, max_iter=1e5, eta0=eta0)
             
-                model.partial_fit([self.featurize_state(env.reset())], [0])
+                model.partial_fit([self.featurize_state(self.env.reset())], [0])
                 self.models.append(model)
                 
         else:
@@ -136,24 +125,12 @@ class FunctionApproximator():
         """
         Returns the featurized representation for a state.
         """
-        s_scaled = scaler.transform([state])
-        s_transformed = feature_transformer.transform(s_scaled)
+        s_scaled = self.scaler.transform([state])
+        s_transformed = self.feature_transformer.transform(s_scaled)
         return s_transformed[0]
     
     def predict(self, s, a=None):
-        """
-        Makes Q(s,a) function predictions.
-        
-        Args:
-            s: state to make a prediction for
-            a: (Optional) action to make a prediction for
-            
-        Returns
-            If an action a is given this returns a single number as the prediction.
-            If no action is given this returns a vector or predictions for all actions
-            in the environment where pred[i] is the prediction for action i.
-            
-        """
+
         features = self.featurize_state(s)
         if a==None:
             return np.array([m.predict([features])[0] for m in self.models])
@@ -185,22 +162,7 @@ Reinforce learning
 """
 
 
-def reinforce(env, func_approximator, num_episodes, discount_factor=1.0, epsilon=0.01, epsilon_decay=1.0):
-    """
-    REINFORCE (Monte Carlo Policy Gradient) Algorithm. Optimizes the policy
-    function approximator using policy gradient.
-    
-    Args:
-        env: OpenAI environment.
-        estimator_policy: Policy Function to be optimized         
-        num_episodes: Number of episodes to run for
-        discount_factor: reward discount factor
-    
-    Returns:
-        An EpisodeStats object with two numpy arrays for episode_lengths and episode_rewards.
-    
-    Adapted from: https://github.com/dennybritz/reinforcement-learning/blob/master/PolicyGradient/CliffWalk%20REINFORCE%20with%20Baseline%20Solution.ipynb
-    """
+def reinforce(env, func_approximator, num_episodes, use_training=True,  epsilon=0.015, discount_factor=1.0, epsilon_decay=1.0):
 
     # Keeps track of useful statistics
     stats = EpisodeStats(
@@ -244,18 +206,32 @@ def reinforce(env, func_approximator, num_episodes, discount_factor=1.0, epsilon
                 break
                 
             state = next_state
-    
-        # Go through the episode, step-by-step and make policy updates (note we sometime use j for the individual steps)
-        func_approximator.new_episode()
-        new_theta=[]
-        for t, transition in enumerate(episode):                 
-            # The return, G_t, after this timestep; this is the target for the PolicyEstimator
-            G_t = sum(discount_factor**i * t.reward for i, t in enumerate(episode[t:]))
-           
-            # Update our policy estimator
-            func_approximator.update(transition.state, transition.action,np.array(G_t))            
+        
+        if(use_training):
+            # Go through the episode, step-by-step and make policy updates (note we sometime use j for the individual steps)
+            func_approximator.new_episode()
+            new_theta=[]
+            for t, transition in enumerate(episode):                 
+                # The return, G_t, after this timestep; this is the target for the PolicyEstimator
+                G_t = sum(discount_factor**i * t.reward for i, t in enumerate(episode[t:]))
+
+                # Update our policy estimator
+                func_approximator.update(transition.state, transition.action,np.array(G_t))            
          
     return stats
+
+
+
+
+
+class Save_stats():
+    
+    def __init__(self, stats_test):
+        self.stats_test_length = stats_test.episode_lengths
+        self.stats_test_reward = stats_test.episode_rewards
+        
+        
+
 
 
 
