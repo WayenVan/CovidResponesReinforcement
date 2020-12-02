@@ -1,11 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[3]:
-
-
 # The basics
-get_ipython().run_line_magic('matplotlib', 'inline')
 import matplotlib.pyplot as plt
 import time
 import itertools
@@ -33,6 +26,9 @@ import sys
 sys.path.append(r'../virl')
 import virl
 
+
+
+env = virl.Epidemic(problem_id = 0, noisy = False)
 
 
 """
@@ -110,37 +106,31 @@ class FunctionApproximator():
     it uses a specific form for Q(s,a) where seperate functions are fitteted for each 
     action (i.e. four Q_a(s) individual functions)
 
-    We could have concatenated the feature maps with the action TODO TASK?
-
     """
  
-    def __init__(self, eta0= 0.01, learning_rate= "constant"):
-        #
-        # Args:
-        #   eta0: learning rate (initial), default 0.01
-        #   learning_rate: the rule used to control the learning rate;
-        #   see https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDRegressor.html for details
-        #        
-        # We create a seperate model for each action in the environment's
-        # action space. Alternatively we could somehow encode the action
-        # into the features, but this way it's easier to code up and understand.
-        #
-        #
+    def __init__(self, eta0= 0.01, learning_rate= "constant", read_approximator = None):
+      
         self.eta0=eta0
         self.learning_rate=learning_rate
         
         self.models = []
-        for _ in range(env.action_space.n):
+        
+        if read_approximator is None:
+             for _ in range(env.action_space.n):
 
-            # You may want to inspect the SGDRegressor to fully understand what is going on
-            # ... there are several interesting parameters you may want to change/tune.
-            model = SGDRegressor(learning_rate=learning_rate, tol=1e-5, max_iter=1e5, eta0=eta0)
+                model = SGDRegressor(learning_rate=learning_rate, tol=1e-5, max_iter=1e5, eta0=eta0)
             
-            # We need to call partial_fit once to initialize the model
-            # or we get a NotFittedError when trying to make a prediction
-            # This is quite hacky.
-            model.partial_fit([self.featurize_state(env.reset())], [0])
-            self.models.append(model)
+                model.partial_fit([self.featurize_state(env.reset())], [0])
+                self.models.append(model)
+                
+        else:
+            for d in read_approximator:
+                f = open(d, 'rb')
+                model = pickle.load(f)
+                self.models.append(model)
+                f.close()
+            
+    
     
     def featurize_state(self, state):
         """
@@ -170,6 +160,12 @@ class FunctionApproximator():
         else:            
             return self.models[a].predict([features])[0]
     
+    def save_models(self, path):
+        for index in range(len(path)):
+            f = open(path[index], 'wb')
+            pickle.dump(self.models[index], f)
+            f.close()
+            
     def update(self, s, a, td_target):
         """
         Updates the approximator's parameters (i.e. the weights) for a given state and action towards
@@ -181,6 +177,7 @@ class FunctionApproximator():
     def new_episode(self):        
         self.t_episode  = 0.  
         
+
         
         
 """
@@ -261,24 +258,4 @@ def reinforce(env, func_approximator, num_episodes, discount_factor=1.0, epsilon
     return stats
 
 
-
-# Load the file
-env = virl.Epidemic(problem_id = 0, noisy = False)
-
-observation_examples = np.array([env.observation_space.sample() for x in range(10000)])
-
-scaler = sklearn.preprocessing.StandardScaler()
-scaler.fit(observation_examples)
-
-feature_transformer = sklearn.pipeline.FeatureUnion([
-        ("rbf1", RBFSampler(gamma=5.0, n_components=100)),
-        ("rbf2", RBFSampler(gamma=2.0, n_components=100)),
-        ("rbf3", RBFSampler(gamma=1.0, n_components=100)),
-        ("rbf4", RBFSampler(gamma=0.5, n_components=100))
-        ])
-feature_transformer.fit(scaler.transform(observation_examples))
-
-EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
-
-my_func_approximator = FunctionApproximator()
 
