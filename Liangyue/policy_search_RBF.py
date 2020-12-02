@@ -1,15 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[3]:
-
-
 # The basics
-get_ipython().run_line_magic('matplotlib', 'inline')
 import matplotlib.pyplot as plt
 import time
 import itertools
 import matplotlib
+import pickle
+import pandas as pd
 
 import numpy as np
 import sys
@@ -28,10 +23,8 @@ from sklearn.kernel_approximation import RBFSampler # this is the RBF function t
 
 from scipy.linalg import norm, pinv
 
-#import environment
-import sys
-sys.path.append(r'../virl')
-import virl
+
+EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
 
 
 
@@ -56,10 +49,6 @@ def create_policy(func_approximator, epsilon, nA):
 Execute the policy
 """
 def exec_policy(env, func_approximator, verbose=False):
-    """
-        A function for executing a policy given the funciton
-        approximation (the exploration is zero)
-    """
 
     # The policy is defined by our function approximator (of the utility)... let's get a hdnle to that function
     policy = create_policy(func_approximator, 0.0, env.action_space.n)
@@ -104,72 +93,56 @@ Function Approximation
 """
 
 class FunctionApproximator():
-    """
-    Q(s,a) function approximator. 
-
-    it uses a specific form for Q(s,a) where seperate functions are fitteted for each 
-    action (i.e. four Q_a(s) individual functions)
-
-    We could have concatenated the feature maps with the action TODO TASK?
-
-    """
  
-    def __init__(self, eta0= 0.01, learning_rate= "constant"):
-        #
-        # Args:
-        #   eta0: learning rate (initial), default 0.01
-        #   learning_rate: the rule used to control the learning rate;
-        #   see https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDRegressor.html for details
-        #        
-        # We create a seperate model for each action in the environment's
-        # action space. Alternatively we could somehow encode the action
-        # into the features, but this way it's easier to code up and understand.
-        #
-        #
+    def __init__(self, env,scaler,feature_transformer, eta0= 0.01, learning_rate= "constant", read_approximator = None):
+      
         self.eta0=eta0
         self.learning_rate=learning_rate
+        self.env = env
+        self.scaler = scaler
+        self.feature_transformer = feature_transformer
         
         self.models = []
-        for _ in range(env.action_space.n):
+        
+        if read_approximator is None:
+             for _ in range(self.env.action_space.n):
 
-            # You may want to inspect the SGDRegressor to fully understand what is going on
-            # ... there are several interesting parameters you may want to change/tune.
-            model = SGDRegressor(learning_rate=learning_rate, tol=1e-5, max_iter=1e5, eta0=eta0)
+                model = SGDRegressor(learning_rate=learning_rate, tol=1e-5, max_iter=1e5, eta0=eta0)
             
-            # We need to call partial_fit once to initialize the model
-            # or we get a NotFittedError when trying to make a prediction
-            # This is quite hacky.
-            model.partial_fit([self.featurize_state(env.reset())], [0])
-            self.models.append(model)
+                model.partial_fit([self.featurize_state(self.env.reset())], [0])
+                self.models.append(model)
+                
+        else:
+            for d in read_approximator:
+                f = open(d, 'rb')
+                model = pickle.load(f)
+                self.models.append(model)
+                f.close()
+            
+    
     
     def featurize_state(self, state):
         """
         Returns the featurized representation for a state.
         """
-        s_scaled = scaler.transform([state])
-        s_transformed = feature_transformer.transform(s_scaled)
+        s_scaled = self.scaler.transform([state])
+        s_transformed = self.feature_transformer.transform(s_scaled)
         return s_transformed[0]
     
     def predict(self, s, a=None):
-        """
-        Makes Q(s,a) function predictions.
-        
-        Args:
-            s: state to make a prediction for
-            a: (Optional) action to make a prediction for
-            
-        Returns
-            If an action a is given this returns a single number as the prediction.
-            If no action is given this returns a vector or predictions for all actions
-            in the environment where pred[i] is the prediction for action i.
-            
-        """
+
         features = self.featurize_state(s)
         if a==None:
             return np.array([m.predict([features])[0] for m in self.models])
         else:            
             return self.models[a].predict([features])[0]
     
+    def save_models(self, path):
+        for index in range(len(path)):
+            f = open(path[index], 'wb')
+            pickle.dump(self.models[index], f)
+            f.close()
+            
     def update(self, s, a, td_target):
         """
         Updates the approximator's parameters (i.e. the weights) for a given state and action towards
@@ -181,6 +154,7 @@ class FunctionApproximator():
     def new_episode(self):        
         self.t_episode  = 0.  
         
+
         
         
 """
@@ -188,22 +162,7 @@ Reinforce learning
 """
 
 
-def reinforce(env, func_approximator, num_episodes, discount_factor=1.0, epsilon=0.01, epsilon_decay=1.0):
-    """
-    REINFORCE (Monte Carlo Policy Gradient) Algorithm. Optimizes the policy
-    function approximator using policy gradient.
-    
-    Args:
-        env: OpenAI environment.
-        estimator_policy: Policy Function to be optimized         
-        num_episodes: Number of episodes to run for
-        discount_factor: reward discount factor
-    
-    Returns:
-        An EpisodeStats object with two numpy arrays for episode_lengths and episode_rewards.
-    
-    Adapted from: https://github.com/dennybritz/reinforcement-learning/blob/master/PolicyGradient/CliffWalk%20REINFORCE%20with%20Baseline%20Solution.ipynb
-    """
+def reinforce(env, func_approximator, num_episodes, use_training=True,  epsilon=0.015, discount_factor=1.0, epsilon_decay=1.0):
 
     # Keeps track of useful statistics
     stats = EpisodeStats(
@@ -247,38 +206,32 @@ def reinforce(env, func_approximator, num_episodes, discount_factor=1.0, epsilon
                 break
                 
             state = next_state
-    
-        # Go through the episode, step-by-step and make policy updates (note we sometime use j for the individual steps)
-        func_approximator.new_episode()
-        new_theta=[]
-        for t, transition in enumerate(episode):                 
-            # The return, G_t, after this timestep; this is the target for the PolicyEstimator
-            G_t = sum(discount_factor**i * t.reward for i, t in enumerate(episode[t:]))
-           
-            # Update our policy estimator
-            func_approximator.update(transition.state, transition.action,np.array(G_t))            
+        
+        if(use_training):
+            # Go through the episode, step-by-step and make policy updates (note we sometime use j for the individual steps)
+            func_approximator.new_episode()
+            new_theta=[]
+            for t, transition in enumerate(episode):                 
+                # The return, G_t, after this timestep; this is the target for the PolicyEstimator
+                G_t = sum(discount_factor**i * t.reward for i, t in enumerate(episode[t:]))
+
+                # Update our policy estimator
+                func_approximator.update(transition.state, transition.action,np.array(G_t))            
          
     return stats
 
 
 
-# Load the file
-env = virl.Epidemic(problem_id = 0, noisy = False)
 
-observation_examples = np.array([env.observation_space.sample() for x in range(10000)])
 
-scaler = sklearn.preprocessing.StandardScaler()
-scaler.fit(observation_examples)
+class Save_stats():
+    
+    def __init__(self, stats_test):
+        self.stats_test_length = stats_test.episode_lengths
+        self.stats_test_reward = stats_test.episode_rewards
+        
+        
 
-feature_transformer = sklearn.pipeline.FeatureUnion([
-        ("rbf1", RBFSampler(gamma=5.0, n_components=100)),
-        ("rbf2", RBFSampler(gamma=2.0, n_components=100)),
-        ("rbf3", RBFSampler(gamma=1.0, n_components=100)),
-        ("rbf4", RBFSampler(gamma=0.5, n_components=100))
-        ])
-feature_transformer.fit(scaler.transform(observation_examples))
 
-EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
 
-my_func_approximator = FunctionApproximator()
 
