@@ -46,7 +46,8 @@ def load_variable(filename):
     f.close()
     return v
 
-def plot_states(states, property=[0,1,2,3]):
+#plot function
+def plot_states(states: np.array, property=[0,1,2,3]):
     """plot states in one episode"""
     
     state_name = ["susceptible", "infectious", "quanrantined", "recovered"]
@@ -55,4 +56,17 @@ def plot_states(states, property=[0,1,2,3]):
     for i in property:
         plt.plot(states_swp[i], label=state_name[i])
         
+    plt.legend()
+
+
+#plot rewards from stats
+def plot_rewards(stats, num_average, problem_id):
+
+    rewards = stats.episode_rewards.flatten()
+
+    rewards_mean = np.resize(rewards, (len(rewards)//num_average, num_average))
+    rewards_mean = np.mean(rewards_mean, axis=1)
+
+    plt.title("average rewards every {} episodes".format(num_average))
+    plt.plot(rewards_mean, label="problem_id={}".format(problem_id))
     plt.legend()

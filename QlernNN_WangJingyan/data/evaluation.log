@@ -1,0 +1,4 @@
+problem_id = 0 with stochatstic=False and noisy=False finished testing in 23:43:59 2020-12-01
+problem_id = 0 with stochatstic=False and noisy=True finished testing in 23:45:02 2020-12-01
+problem_id = 0 with stochatstic=True and noisy=False finished testing in 23:46:11 2020-12-01
+problem_id = 0 with stochatstic=True and noisy=True finished testing in 23:47:16 2020-12-01
