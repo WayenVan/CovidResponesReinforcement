@@ -1,7 +1,9 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import itertools
 import pickle 
+
 
 
 def policy_generator(env, approximator=None, policy_type="random"):
@@ -60,13 +62,14 @@ def plot_states(states: np.array, property=[0,1,2,3]):
 
 
 #plot rewards from stats
-def plot_rewards(stats, num_average, problem_id):
+def plot_rewards(stats, num_average, problem_id, smoothing_window = 5):
 
     rewards = stats.episode_rewards.flatten()
 
     rewards_mean = np.resize(rewards, (len(rewards)//num_average, num_average))
     rewards_mean = np.mean(rewards_mean, axis=1)
+    
+    rewards_smoothed = pd.Series(rewards_mean).rolling(smoothing_window, min_periods=smoothing_window).mean()
 
-    plt.title("average rewards every {} episodes".format(num_average))
-    plt.plot(rewards_mean, label="problem_id={}".format(problem_id))
+    plt.plot(rewards_smoothed, label="problem_id={}".format(problem_id))
     plt.legend()
