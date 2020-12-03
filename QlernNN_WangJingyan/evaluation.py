@@ -62,7 +62,7 @@ def plot_states(states: np.array, property=[0,1,2,3]):
 
 
 #plot rewards from stats
-def plot_rewards(stats, num_average, problem_id, smoothing_window = 5):
+def plot_rewards(stats, num_average, problem_id, smoothing_window = 2):
 
     rewards = stats.episode_rewards.flatten()
 
