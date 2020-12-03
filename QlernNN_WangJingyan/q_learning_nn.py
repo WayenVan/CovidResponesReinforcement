@@ -11,6 +11,7 @@ from collections import namedtuple
 # Keep track of some stats
 EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
 
+#this class provided for save stats using pickle
 class Stats_storage():
     
     def __init__(self, stats):
