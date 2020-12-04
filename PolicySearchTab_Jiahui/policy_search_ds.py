@@ -37,7 +37,12 @@ import sys
 sys.path.append(r'../virl')
 import virl
 
-EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])        
+EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
+
+class Stats_storage():
+    def __init__(self, stats):
+        self.episode_rewards=stats.episode_rewards
+        self.episode_length = stats.episode_lengths
 
 
 def reinforce(env, estimator_policy, num_episodes, tabular, discount_factor=1.0):
