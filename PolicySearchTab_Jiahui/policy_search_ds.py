@@ -13,7 +13,9 @@ from collections import namedtuple
 
 import gym
 
-import keras
+import tensorflow as tf
+
+ 
 from keras.models import Sequential
 #from keras.layers import Dense
 from keras.optimizers import Adam
@@ -26,14 +28,14 @@ from keras import utils as np_utils
 from keras import optimizers
 from keras import initializers
 
-import tensorflow as tf
-
 from scipy.linalg import norm, pinv
 
 #import environment
 import sys
 sys.path.append(r'../virl')
 import virl
+
+EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
 
 #Approximation
 class NeuralNetworkPolicyEstimator():
@@ -51,16 +53,16 @@ class NeuralNetworkPolicyEstimator():
         self.verbose=verbose # Print debug information        
         self.n_layers = len(nn_config)  # number of hidden layers        
         self.model = []
-        self.__build_network(d_states, n_actions, nn_config)
+        self.__build_network(d_states, n_actions)
         self.__build_train_fn()
              
 
-    def __build_network(self, input_dim, output_dim, nn_config):
+    def __build_network(self, input_dim, output_dim):
         """Create a base network usig the Keras functional API"""
         self.X = layers.Input(shape=(input_dim,))
         net = self.X
         
-        for h_dim in nn_config:
+        for h_dim in self.nn_config:
             net = layers.Dense(h_dim)(net)
             net = layers.Activation("relu")(net)
             
@@ -78,9 +80,10 @@ class NeuralNetworkPolicyEstimator():
         
         """
         # predefine a few variables
-        action_onehot_placeholder   = K.placeholder(shape=(None, self.n_actions),name="action_onehot") # define a variable
+        action_onehot_placeholder   = K.placeholder(shape=(None, self.n_actions), name="action_onehot") # define a variable
         target                      = K.placeholder(shape=(None,), name="target") # define a variable       
-        
+  
+
         # this part defines the loss and is very important!
         action_prob        = self.model.output # the outlout of the neural network        
         action_selected_prob        = K.sum(action_prob * action_onehot_placeholder, axis=1) # probability of the selcted action        
@@ -90,10 +93,10 @@ class NeuralNetworkPolicyEstimator():
         
         # defining the speific optimizer to use
         adam = optimizers.Adam(lr=self.alpha)# clipnorm=1000.0) # let's use a kereas optimiser called Adam
-        updates = adam.get_updates(params=self.model.trainable_weights,loss=loss) # what gradient updates to we parse to Adam
-            
+        updates = adam.get_updates(params=self.model.trainable_weights, loss=loss) # what gradient updates to we parse to Adam
+        
         # create a handle to the optimiser function    
-        self.train_fn = K.function(inputs=[self.model.input,action_onehot_placeholder,target],
+        self.train_fn = K.function(inputs=[self.model.input, action_onehot_placeholder, target],
                                    outputs=[],
                                    updates=updates) # return a function which, when called, takes a gradient step
       
@@ -118,8 +121,8 @@ class NeuralNetworkPolicyEstimator():
             target: a real number representing the discount furture reward, reward to go
             
         """
-        action_onehot = np_utils.to_categorical(actions, num_classes=self.n_actions) # encodes the state as one-hot
-        self.train_fn([states, action_onehot, target]) # call the custom optimiser which takes a gradient step
+        action_onehot = np_utils.to_categorical(actions, num_classes=self.n_actions) # encodes the state as one-hot s
+        self.train_fn([states, action_onehot, [target]]) # call the custom optimiser which takes a gradient step
         return 
         
     def new_episode(self):        
@@ -163,14 +166,15 @@ def reinforce(env, estimator_policy, num_episodes, discount_factor=1.0, use_disc
         state = env.reset()
         if(use_discrete):
             state = discrete_sample(state)
+
         episode = []
-        
+
         # One step in the environment
         for t in itertools.count():
             # Take a step                       
-            action_probs = estimator_policy.predict(state_)
+            action_probs = estimator_policy.predict(np.reshape(state, (1, env.observation_space.shape[0])))
             action_probs = action_probs.squeeze()
-            
+            print(action_probs)
             action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
             
             ##
@@ -203,7 +207,9 @@ def reinforce(env, estimator_policy, num_episodes, discount_factor=1.0, use_disc
             # The return, G_t, after this timestep; this is the target for the PolicyEstimator
             G_t = sum(discount_factor**i * t.reward for i, t in enumerate(episode[t:]))
            
+            temp = np.array([1,2])
             # Update our policy estimator
-            estimator_policy.update(transition.state, transition.action,np.array(G_t))            
+            print("update")
+            estimator_policy.update(np.reshape(transition.state, (1, env.observation_space.shape[0])), transition.action ,np.array(G_t))          
          
     return stats
