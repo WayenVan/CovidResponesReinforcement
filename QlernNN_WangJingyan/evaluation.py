@@ -74,6 +74,8 @@ def evaluate(problem_id):
         error_x = np.append(error_x, i*100+50)
     plt.errorbar(error_x, train_rewards_mean, yerr=train_rewards_std, fmt='o', color='k', capsize=5, label="u, std per 100 episodes",zorder=30)
     plt.legend(loc="lower left")
+    plt.savefig('./figures/figure{}_0.pdf'.format(problem_id))
+
     #figure2
     plt.figure()
     plt.title("rewards for problem_id={} when schastic=1".format(problem_id))
@@ -85,6 +87,7 @@ def evaluate(problem_id):
     x11 +=len(stats_evaluation_10.episode_rewards)
     plt.plot(x11, stats_evaluation_11.episode_rewards, label="noisy=1")
     plt.legend()
+    plt.savefig('./figures/figure{}_1.pdf'.format(problem_id))
 
 
     #figure3
@@ -100,6 +103,7 @@ def evaluate(problem_id):
     plt.axhline(stats_random_mean+stats_random_std, color='k', ls='--')
     plt.axhline(stats_random_mean-stats_random_std, color='k', ls='--', label="std of random agent")
     plt.legend()
+    plt.savefig('./figures/figure{}_2.pdf'.format(problem_id))
 
 
 

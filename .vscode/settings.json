@@ -1,4 +1,4 @@
 {
-    "python.pythonPath": "/Users/wayenvan/opt/anaconda3/envs/py3.6/bin/python",
-    "python.dataScience.jupyterServerURI": "http://localhost:8888/?token=9aa151298f7d0430c8ed6f36ff444d5b967397e2e9e5408e"
+    "python.pythonPath": "/Users/wayenvan/opt/anaconda3/bin/python",
+    "python.dataScience.jupyterServerURI": "local"
 }
