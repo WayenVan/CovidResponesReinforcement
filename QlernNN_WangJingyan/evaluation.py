@@ -49,6 +49,14 @@ def evaluate(problem_id):
 
     ##add annotate adn axvline
     plt.axvline(len(stats_train.episode_rewards), color='r', linestyle='--')
+    plt.axvline(186 , color='c', linestyle='--')
+    
+    plt.annotate('convergence', xy=(186, stats_train.episode_rewards[186]),                       
+                xycoords='data',
+                xytext=(-40, -30), textcoords='offset pixels', fontsize = 12,
+                arrowprops=dict(arrowstyle='<|-', color='c', alpha=0.7, connectionstyle='arc3, rad=.2'),
+                color = 'c'
+                )
     plt.annotate('testing', xy=(len(stats_train.episode_rewards), stats_evaluation_01.episode_rewards[0]-0.5),                       
                 xycoords='data',
                 xytext=(40, -3), textcoords='offset pixels', fontsize = 12,
@@ -62,9 +70,9 @@ def evaluate(problem_id):
                 color = 'r', zorder = 40
                 )
     plt.errorbar(1100, test_mean, yerr=test_std, fmt='o', color='k', capsize=5, zorder=30)
-    plt.annotate("mean={}\nstd={}".format(round(test_mean, 2), round(test_std,3)), xy=(1100, test_mean),
+    plt.annotate("mean:\n{}\nstd:\n{}".format(round(test_mean, 2), round(test_std,3)), xy=(1100, test_mean),
                 xycoords='data',
-                xytext=(100, -100), textcoords='offset pixels', fontsize = 12,
+                xytext=(10, -100), textcoords='offset pixels', fontsize = 12,
                 arrowprops=dict(arrowstyle='<|-', color='k', alpha=0.7, connectionstyle='arc3, rad=.2'),
                 color='k')
 
@@ -74,6 +82,8 @@ def evaluate(problem_id):
         error_x = np.append(error_x, i*100+50)
     plt.errorbar(error_x, train_rewards_mean, yerr=train_rewards_std, fmt='o', color='k', capsize=5, label="u, std per 100 episodes",zorder=30)
     plt.legend(loc="lower left")
+    plt.savefig('./figures/figure{}_0.pdf'.format(problem_id))
+
     #figure2
     plt.figure()
     plt.title("rewards for problem_id={} when schastic=1".format(problem_id))
@@ -85,12 +95,13 @@ def evaluate(problem_id):
     x11 +=len(stats_evaluation_10.episode_rewards)
     plt.plot(x11, stats_evaluation_11.episode_rewards, label="noisy=1")
     plt.legend()
+    plt.savefig('./figures/figure{}_1.pdf'.format(problem_id))
 
 
     #figure3
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.text(320, stats_random_mean, "mean = {}\nstd = {}".format(round(stats_random_mean,2), round(stats_random_std, 2)), fontsize=12)
+    ax.text(320, stats_random_mean, "mean:\n{}\nstd:\n{}".format(round(stats_random_mean,2), round(stats_random_std, 2)), fontsize=12)
     plt.title("rewards for probem_id={} of Random Agent and Deterministic".format(problem_id))
     plt.xlabel("episode")
     plt.ylabel("rewards(per episode)")
@@ -100,6 +111,7 @@ def evaluate(problem_id):
     plt.axhline(stats_random_mean+stats_random_std, color='k', ls='--')
     plt.axhline(stats_random_mean-stats_random_std, color='k', ls='--', label="std of random agent")
     plt.legend()
+    plt.savefig('./figures/figure{}_2.pdf'.format(problem_id))
 
 
 
@@ -113,3 +125,7 @@ def load_variable(filename):
     v = pickle.load(f)
     f.close()
     return v
+
+
+def plot_rewards(stats, problem_id):
+    plt.plot(stats.episode_rewards, label="problem_id = {}".format(problem_id))
