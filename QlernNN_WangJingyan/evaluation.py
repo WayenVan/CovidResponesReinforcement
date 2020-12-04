@@ -113,3 +113,7 @@ def load_variable(filename):
     v = pickle.load(f)
     f.close()
     return v
+
+
+def plot_rewards(stats, problem_id):
+    plt.plot(stats.episode_rewards, label="problem_id = {}".format(problem_id))
