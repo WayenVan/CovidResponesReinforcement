@@ -22,17 +22,18 @@ class TabQLearningAgent:
     def rl(self):
         # initialization variable
         env = self.env
-        
+        alpha, gamma = self.alpha, self.gamma
         num_episodes, max_step_week = self.num_episodes, self.max_step_week
         _args = self.args
-        
+        # all_act = self.all_act
 
         s, a, r = self.s, self.a, self.r
         
-        alpha, gamma = self.alpha, self.gamma
         q_dict = self.q_dictionary()
-        all_act = self.all_act
-        Q = self.q_table(q_dict, all_act)
+        # Q = self.q_table(q_dict, all_act)
+        Q = pd.read_csv('./data/q_table/Q_table0{}_{}{}'.format(_args[0], _args[1], _args[2]), 
+                        header=None)
+        Q.drop(Q.columns[0], axis=1, inplace=True)
 
         # get action quantity
         n_action = env.action_space.n
@@ -66,12 +67,12 @@ class TabQLearningAgent:
                 r_episodes += r
 
                 # format state
-                _s1 = self.num_format(s1)
+                # _s1 = self.num_format(s1)
 
-                s1_index = self.find_index(q_dict, _s1)
+                # s1_index = self.find_index(q_dict, _s1)
 
                 # q-learning
-                Q.loc[s, a] += alpha * (r + gamma * np.max(Q.loc[s1_index, :].values) - Q.loc[s, a])
+                # Q.loc[s, a] += alpha * (r + gamma * np.max(Q.loc[s1_index, :].values) - Q.loc[s, a])
             
                 # Print out which step we're on, useful for debugging.
                 print("\rProblem {}(stochastic={}, noisy={}): Step {} @ Episode {}/{} ({})".format(
@@ -86,7 +87,7 @@ class TabQLearningAgent:
 
             r_array.append(r_episodes)
 
-            Q.to_csv('./data/q_table/Q_table0{}_{}{}'.format(_args[0], _args[1], _args[2]))
+            # Q.to_csv('./data/q_table/Q_table0{}_{}{}'.format(_args[0], _args[1], _args[2]))
 
         return r_array
 
